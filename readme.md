@@ -10,7 +10,6 @@ DeliveryBot es un bot de Telegram automatizado mediante **n8n**, diseñado para 
 * **Registro de Datos de Usuario:** Captura el nombre del usuario mediante un comando específico antes de procesar el pedido.
 * **Ubicación de Entrega Específica:** Permite definir el destino exacto dentro de las instalaciones usando comandos dedicados (*torre*, *salón*, *recepción* o *coordinación*).
 * **Integración con Cocina:** Envía los pedidos confirmados directamente al área de cocina para su preparación inmediata.
-* **Control de Estados del Pedido:** Seguimiento detallado del ciclo de vida a través de diferentes estados (*Realizado*, *En camino*, *Entregado*).
 * **Sincronización con Google Sheets:** Almacena automáticamente cada transacción, usuario, ubicación y estado en una hoja de cálculo centralizada.
 * **Procesamiento de Datos en JavaScript:** Un nodo de código dedicado analiza y calcula métricas clave de ventas y operaciones.
 * **Reportes para Administradores:** Envía resúmenes detallados de ingresos, productos más vendidos y horas pico.
@@ -32,7 +31,7 @@ Los usuarios y clientes pueden interactuar con el bot utilizando los siguientes 
 * `/salon [Detalle]` - Especifica el salón de entrega (ej. `/salon 302`).
 * `/recepcion` - Indica que la entrega se realizará en recepción.
 * `/coordinacion` - Indica que la entrega se realizará en coordinación.
-* `/mi pedido` - Guarda el nombre del usuario para asociarlo al pedido que está por realizar.
+* `/mipedido` - Guarda el nombre del usuario para asociarlo al pedido que está por realizar.
 * `/reporte` *(Exclusivo para administradores)* - Genera el reporte completo de ventas, ingresos y productos más vendidos.
 
 ---
