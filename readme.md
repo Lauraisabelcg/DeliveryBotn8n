@@ -1,19 +1,47 @@
 # 🤖 DeliveryBot - Sistema Automatizado de Pedidos y Reportes
 
-DeliveryBot es un bot de Telegram automatizado mediante **n8n**, diseñado para gestionar, registrar y analizar el historial de pedidos de un negocio de comida o delivery (como *Delicias del Ayer*), conectándose de manera fluida con Google Sheets y procesando analíticas en tiempo real.
+DeliveryBot es un bot de Telegram automatizado mediante **n8n**, diseñado para gestionar, registrar, enviar a cocina y analizar el historial de pedidos de un negocio, conectándose de manera fluida con Google Sheets y procesando analíticas en tiempo real.
 
 ---
 
 ## 🚀 Características Principales
 
-* **Recepción por Telegram:** Captura interacciones y comandos directos de los usuarios (ej. `/reporte`).
-* **Sincronización con Google Sheets:** Almacena automáticamente cada pedido en una hoja de cálculo centralizada.
-* **Procesamiento de Datos en JavaScript:** Un nodo de código dedicado analiza y calcula métricas clave sin depender de servicios de IA externos lentos.
-* **Métricas Avanzadas de Negocio:**
-  * Conteo total de pedidos activos (excluyendo cancelados).
-  * Cálculo de ingresos totales generados.
-  * Top 5 de productos más vendidos con sus respectivas cantidades.
-  * Horas de mayor afluencia (horas pico) de pedidos.
+* **Gestión Interactiva del Carrito:** Permite a los clientes explorar el menú, armar su pedido, vaciarlo o consultarlo directamente en el chat mediante comandos rápidos.
+* **Registro de Datos de Usuario:** Captura el nombre del usuario mediante un comando específico antes de procesar el pedido.
+* **Ubicación de Entrega Específica:** Permite definir el destino exacto dentro de las instalaciones usando comandos dedicados (*torre*, *salón*, *recepción* o *coordinación*).
+* **Integración con Cocina:** Envía los pedidos confirmados directamente al área de cocina para su preparación inmediata.
+* **Control de Estados del Pedido:** Seguimiento detallado del ciclo de vida a través de diferentes estados (*Realizado*, *En camino*, *Entregado*).
+* **Sincronización con Google Sheets:** Almacena automáticamente cada transacción, usuario, ubicación y estado en una hoja de cálculo centralizada.
+* **Procesamiento de Datos en JavaScript:** Un nodo de código dedicado analiza y calcula métricas clave de ventas y operaciones.
+* **Reportes para Administradores:** Envía resúmenes detallados de ingresos, productos más vendidos y horas pico.
+
+---
+
+## ⌨️ Comandos del Chatbot
+
+Los usuarios y clientes pueden interactuar con el bot utilizando los siguientes comandos:
+
+* `/start` - Inicia la conversación y despliega el saludo y menú de bienvenida.
+* `/menu` - Muestra la lista de productos disponibles para ordenar.
+* `/add [producto]` - Añade un producto al carrito de compras actual.
+* `/quitar [producto]` - Elimina o resta un producto del carrito.
+* `/carrito` - Muestra los productos que tienes seleccionados actualmente en el carrito.
+* `/vaciar` - Vacía por completo el carrito de compras actual.
+* `/confirmar` - Finaliza el carrito actual, registra el pedido completo (con usuario y ubicación) en Google Sheets, **lo envía a cocina** e inicializa su ciclo de estados.
+* `/torre [Detalle]` - Especifica la torre de entrega (ej. `/torre B`).
+* `/salon [Detalle]` - Especifica el salón de entrega (ej. `/salon 302`).
+* `/recepcion` - Indica que la entrega se realizará en recepción.
+* `/coordinacion` - Indica que la entrega se realizará en coordinación.
+* `/mi pedido` - Guarda el nombre del usuario para asociarlo al pedido que está por realizar.
+* `/reporte` *(Exclusivo para administradores)* - Genera el reporte completo de ventas, ingresos y productos más vendidos.
+
+---
+
+## 🔄 Flujo y Estados del Pedido
+
+Una vez que el cliente confirma su orden, el pedido sigue un flujo automatizado de estados gestionado por el bot:
+
+1. **Realizado:** El pedido se ha registrado correctamente en la base de datos y se ha notificado a cocina.
 
 ---
 
@@ -28,16 +56,14 @@ DeliveryBot es un bot de Telegram automatizado mediante **n8n**, diseñado para 
 
 ## 📦 Estructura del Flujo en n8n
 
-1. **Telegram Trigger:** Escucha los comandos entrantes (ej. `/reporte`).
-2. **Google Sheets (Get Rows):** Extrae el historial completo desde la hoja de cálculo `PEDIDOS`.
-3. **Nodo de Código (Analizar Datos y Generar Reporte):** Script en JavaScript encargado de filtrar, ordenar, sumar ingresos y estructurar el texto final del reporte.
-4. **Telegram (Send Message):** Envía el mensaje formateado de vuelta al administrador o chat correspondiente.
+1. **Telegram Trigger:** Escucha los mensajes y comandos entrantes de los usuarios (como `/menu`, `/mi pedido`, `/torre`, `/confirmar`, etc.).
+2. **Google Sheets (Get/Append Rows):** Lee o escribe los datos en la hoja de cálculo de pedidos.
+3. **Nodo de Código (Analizar Datos y Generar Reporte):** Script en JavaScript encargado de filtrar, ordenar, sumar ingresos y estructurar el texto final del reporte de ventas.
+4. **Telegram (Send Message):** Envía las respuestas, confirmaciones, avisos a cocina o estados del pedido de vuelta al chat.
 
 ---
 
-## 💻 Script de Análisis (JavaScript)
-
-El núcleo del procesamiento de datos utiliza el siguiente script dentro del nodo de n8n:
+## 💻 Script de Análisis de Ventas (JavaScript)
 
 ```javascript
 // 1. Obtenemos todas las filas del nodo de Google Sheets
@@ -116,3 +142,16 @@ return [{
         reporte_texto: mensajeReporte
     }
 }];
+
+
+## 🎯 Próximas Mejoras y Pendientes (Roadmap)
+
+El proyecto está funcional, pero aún tiene áreas de oportunidad y características planeadas para futuras versiones:
+
+* [ ] **Cambios de estados del pedido a traves del chat de la cocina:** como por ejemplo:
+**En camino:** El pedido ha salido del establecimiento y va rumbo a la ubicación exacta especificada (*torre, salón, recepción o coordinación*).
+**Entregado:** El pedido ha llegado con éxito a su destino final.
+* [ ] **Notificaciones automáticas:** Enviar una alerta directa al cliente por Telegram cuando el pedido cambie a estado *En camino*.
+* [ ] **Filtros por fecha en el reporte:** Permitir que el comando `/reporte` reciba un rango de fechas (ej. diario o semanal) en lugar de todo el historial acumulado.
+* [ ] **Base de datos persistente:** Migrar el almacenamiento temporal de carritos de Google Sheets a una base de datos relacional para evitar pérdida de datos en carritos activos.
+* [ ] **Panel web de administración:** Diseñar una interfaz web externa para ver el estado de cocina en tiempo real sin depender únicamente del chat.
