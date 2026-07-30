@@ -26,9 +26,8 @@ DeliveryBot es un bot de Telegram automatizado mediante **n8n**, diseñado para 
 El cliente puede explorar el menú, seleccionar cantidades y definir su ubicación de entrega de manera fluida e interactiva.
 
 ![Paso 1 - Inicio del pedido](Delivery1.png)
-![Paso 2 - Selección de productos](Delivery2.png)
-![Paso 3 - Confirmación del carrito](Delivery3.png)
-![Paso 4 - Confirmación final](Delivery4.png)
+![Paso 2 - Selección de productos y confirmacion de carrito](Delivery2.png)
+![Paso 4 - Confirmación final](Delivery3.png)
 
 ### 2. Control de Inventario Automático (Stock Agotado)
 Cuando un producto llega a stock 0, el sistema actualiza Google Sheets marcándolo como "Agotado", lo que bloquea automáticamente su venta y lo muestra actualizado en el chat para futuros clientes.
