@@ -1556,7 +1556,7 @@
       "type": "n8n-nodes-base.googleSheets",
       "typeVersion": 4,
       "position": [
-        1392,
+        1600,
         2464
       ],
       "id": "444757f7-678d-404d-98f9-d4877b3c7938",
@@ -1569,13 +1569,13 @@
     },
     {
       "parameters": {
-        "jsCode": "// Extraemos la lista desde tu nodo actual\nconst stockUpdates = $('JS Consolidar Datos Usuario').first().json.actualizaciones_stock;\n\nif (!stockUpdates) return [];\n\n// Los separamos para que Sheets los actualice uno por uno\nreturn stockUpdates.map(item => ({\n  json: {\n    id_producto: item.id_producto,\n    nuevo_stock: item.nuevo_stock\n  }\n}));"
+        "jsCode": "// Extraemos la lista desde tu nodo actual\nconst stockUpdates = $('JS Consolidar Datos Usuario').first().json.actualizaciones_stock;\n\nif (!stockUpdates) return [];\n\n// Los separamos para que Sheets los actualice uno por uno\nreturn stockUpdates.map(item => {\n  \n  // Validamos si el stock llegó a cero\n  // Si es menor o igual a 0, escribimos \"Agotado\", si no, dejamos el número normal\n  const stockFinal = item.nuevo_stock <= 0 ? \"Agotado\" : item.nuevo_stock;\n\n  return {\n    json: {\n      id_producto: item.id_producto,\n      nuevo_stock: stockFinal\n    }\n  };\n});"
       },
       "name": "Separar Articulos para Stock",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        1568,
+        1776,
         2464
       ],
       "id": "0dcb7b41-b8ff-4c6c-bd0c-753eff60823f"
@@ -1687,7 +1687,7 @@
       "type": "n8n-nodes-base.googleSheets",
       "typeVersion": 4,
       "position": [
-        1776,
+        1984,
         2464
       ],
       "id": "0889e1c2-3e2f-41d4-ab65-6a4afb48bc55",
@@ -2252,7 +2252,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// 1. Capturamos los datos de Telegram\nconst triggerData = $('Telegram Trigger').first().json;\nconst telegramId = triggerData.message.chat.id;\nconst nombrePerfil = triggerData.message.from.first_name || \"Cliente\";\nconst apellidoPerfil = triggerData.message.from.last_name || \"\";\nconst nombreCompleto = `${nombrePerfil} ${apellidoPerfil}`.trim();\n\nlet torreElegida = \"No especificada\";\nlet pisoElegido = \"No especificado\";\nlet carritoTexto = \"\";\n\ntry {\n    const memoria = $('Leer Memoria Sesion2').first().json;\n    torreElegida = memoria.torre_temporal || \"No especificada\";\n    pisoElegido = memoria.piso_temporal || \"No especificado\";\n    carritoTexto = memoria.carrito_temporal || \"\";\n} catch (e) {}\n\n// 2. Obtenemos el Menú \nlet menuItems = [];\ntry {\n    menuItems = $('Obtener MENU para Carrito1').all().map(item => item.json);\n} catch (e) {}\n\n// 3. Procesamos carrito, sumamos totales y CALCULAMOS STOCK\nlet detallesResumen = carritoTexto;\nlet grandTotal = 0;\nlet actualizacionesStock = []; // ¡Nueva variable para el stock!\n\nif (typeof carritoTexto === 'string') {\n    carritoTexto = carritoTexto.replace(/=/g, '').trim();\n}\n\nif (carritoTexto && menuItems.length > 0) {\n    const lineas = carritoTexto.split('\\n').map(l => l.trim()).filter(l => l.length > 0);\n    let resumenTemporal = \"\";\n    \n    lineas.forEach(linea => {\n        const match = linea.match(/(\\d+)\\s*-\\s*Cantidad:\\s*(\\d+)/i);\n        if (match) {\n            const productId = match[1];\n            const quantity = parseInt(match[2], 10);\n            const product = menuItems.find(p => String(p.id_producto).trim() === String(productId).trim());\n            \n            if (product) {\n                let precioLimpio = String(product.precio).replace(/[^0-9.,]/g, '').replace(',', '.');\n                const precioUnitario = parseFloat(precioLimpio || 0);\n                const subtotal = quantity * precioUnitario;\n                \n                grandTotal += subtotal;\n                resumenTemporal += `• ${quantity}x ${product.nombre} ($${subtotal.toFixed(2)})\\n`;\n                \n                // Calculamos el nuevo stock restando la cantidad pedida\n                const stockActual = parseInt(product.stock, 10) || 0;\n                const nuevoStock = Math.max(0, stockActual - quantity);\n                actualizacionesStock.push({\n                    id_producto: productId,\n                    nuevo_stock: nuevoStock\n                });\n\n            } else {\n                resumenTemporal += `${linea}\\n`; \n            }\n        } else {\n            resumenTemporal += `${linea}\\n`;\n        }\n    });\n    detallesResumen = resumenTemporal.trim();\n}\n\n// 4. Fechas y ID\nconst ahora = new Date();\nconst anio = ahora.getFullYear().toString().slice(-2);\nconst mes = String(ahora.getMonth() + 1).padStart(2, '0');\nconst dia = String(ahora.getDate()).padStart(2, '0');\nconst horas = String(ahora.getHours()).padStart(2, '0');\nconst minutos = String(ahora.getMinutes()).padStart(2, '0');\nconst segundos = String(ahora.getSeconds()).padStart(2, '0');\nconst milisegundos = String(ahora.getMilliseconds()).padStart(3, '0');\nconst aleatorio = Math.floor(Math.random() * 900) + 100;\n\nconst idPedidoUnico = `PED-${anio}${mes}${dia}-${horas}${minutos}${segundos}${milisegundos}-${aleatorio}`;\nconst fechaStr = `${ahora.getFullYear()}-${mes}-${dia}`;\nconst horaStr = `${horas}:${minutos}:${segundos}`;\n\n// 5. Preparamos los textos finales\nconst textoCocina = `🔔 Nuevo Pedido Recibido \\n\\n📦 ID de Orden: ${idPedidoUnico}\\n👤 Cliente: ${nombreCompleto} (ID: ${telegramId})\\n🏢 Torre: ${torreElegida}\\n📍 Ubicación: ${pisoElegido}\\n📅 Fecha y Hora: ${fechaStr} a las ${horaStr}\\n\\n📋 Detalle del pedido:\\n${detallesResumen}\\n\\n💰 Total a cobrar: $${grandTotal.toFixed(2)}\\n📌 Estado: Recibido`;\n\nconst textoUsuario = `¡Listo, ${nombreCompleto}! Tu pedido ha sido confirmado y enviado a cocina con éxito 🍳🚀.\\n\\n📦 ID de Pedido: ${idPedidoUnico}\\n🕒 Procesado a las: ${horaStr} (${fechaStr})\\n🏢 Entregar en: Torre ${torreElegida} - ${pisoElegido}\\n\\n📋 Tu Resumen:\\n${detallesResumen}\\n\\n💰 Total Pagado / A Cancelar: $${grandTotal.toFixed(2)}\\n\\nGuarda este ID por si necesitas realizar cualquier consulta. ¡Buen provecho! ✨`;\n\n// 6. Retornamos todo\nreturn [{\n    json: {\n        telegram_id: telegramId,\n        nombre_completo: nombreCompleto,\n        torre: torreElegida,\n        ubicacion: pisoElegido,\n        id_pedido: idPedidoUnico,\n        detalles_pedido: detallesResumen,\n        total_pago: grandTotal,\n        estado: \"Recibido\",\n        fecha: fechaStr,\n        hora: horaStr,\n        pantalla_actual: \"inicio\", // Lo devolvemos al inicio\n        mensajeCocina: textoCocina,\n        mensajeUsuario: textoUsuario,\n        actualizaciones_stock: actualizacionesStock // ¡Aquí va el stock!\n    }\n}];"
+        "jsCode": "// 1. Capturamos los datos de Telegram\nconst triggerData = $('Telegram Trigger').first().json;\nconst telegramId = triggerData.message.chat.id;\nconst nombrePerfil = triggerData.message.from.first_name || \"Cliente\";\nconst apellidoPerfil = triggerData.message.from.last_name || \"\";\nconst nombreCompleto = `${nombrePerfil} ${apellidoPerfil}`.trim();\n\nlet torreElegida = \"No especificada\";\nlet pisoElegido = \"No especificado\";\nlet carritoTexto = \"\";\n\ntry {\n    const memoria = $('Leer Memoria Sesion2').first().json;\n    torreElegida = memoria.torre_temporal || \"No especificada\";\n    pisoElegido = memoria.piso_temporal || \"No especificado\";\n    carritoTexto = memoria.carrito_temporal || \"\";\n} catch (e) {}\n\n// 2. Obtenemos el Menú \nlet menuItems = [];\ntry {\n    menuItems = $('Obtener MENU para Carrito1').all().map(item => item.json);\n} catch (e) {}\n\n// 3. Procesamos carrito, sumamos totales y CALCULAMOS STOCK\nlet detallesResumen = carritoTexto;\nlet grandTotal = 0;\nlet actualizacionesStock = []; \n\n// VARIABLES NUEVAS PARA EL STOCK CRÍTICO\nlet alertaStockCritico = false;\nlet productosCriticos = []; \n\nif (typeof carritoTexto === 'string') {\n    carritoTexto = carritoTexto.replace(/=/g, '').trim();\n}\n\nif (carritoTexto && menuItems.length > 0) {\n    const lineas = carritoTexto.split('\\n').map(l => l.trim()).filter(l => l.length > 0);\n    let resumenTemporal = \"\";\n    \n    lineas.forEach(linea => {\n        const match = linea.match(/(\\d+)\\s*-\\s*Cantidad:\\s*(\\d+)/i);\n        if (match) {\n            const productId = match[1];\n            const quantity = parseInt(match[2], 10);\n            const product = menuItems.find(p => String(p.id_producto).trim() === String(productId).trim());\n            \n            if (product) {\n                let precioLimpio = String(product.precio).replace(/[^0-9.,]/g, '').replace(',', '.');\n                const precioUnitario = parseFloat(precioLimpio || 0);\n                const subtotal = quantity * precioUnitario;\n                \n                grandTotal += subtotal;\n                resumenTemporal += `• ${quantity}x ${product.nombre} ($${subtotal.toFixed(2)})\\n`;\n                \n                // Calculamos el nuevo stock restando la cantidad pedida\n                const stockActual = parseInt(product.stock, 10) || 0;\n                const nuevoStock = Math.max(0, stockActual - quantity);\n                actualizacionesStock.push({\n                    id_producto: productId,\n                    nuevo_stock: nuevoStock\n                });\n\n                // VERIFICACIÓN DE STOCK CRÍTICO (<= 3)\n                if (nuevoStock <= 3) {\n                    alertaStockCritico = true;\n                    productosCriticos.push(`⚠️ ${product.nombre} (Solo quedan: ${nuevoStock})`);\n                }\n\n            } else {\n                resumenTemporal += `${linea}\\n`; \n            }\n        } else {\n            resumenTemporal += `${linea}\\n`;\n        }\n    });\n    detallesResumen = resumenTemporal.trim();\n}\n\n// 4. Fechas y ID (Ajustado para UTC-5)\nconst fechaServidor = new Date();\nconst ahora = new Date(fechaServidor.getTime() - (5 * 60 * 60 * 1000));\n\nconst anio = ahora.getFullYear().toString().slice(-2);\nconst mes = String(ahora.getMonth() + 1).padStart(2, '0');\nconst dia = String(ahora.getDate()).padStart(2, '0');\nconst horas = String(ahora.getHours()).padStart(2, '0');\nconst minutos = String(ahora.getMinutes()).padStart(2, '0');\nconst segundos = String(ahora.getSeconds()).padStart(2, '0');\nconst milisegundos = String(ahora.getMilliseconds()).padStart(3, '0');\nconst aleatorio = Math.floor(Math.random() * 900) + 100;\n\nconst idPedidoUnico = `PED-${anio}${mes}${dia}-${horas}${minutos}${segundos}${milisegundos}-${aleatorio}`;\nconst fechaStr = `${ahora.getFullYear()}-${mes}-${dia}`;\nconst horaStr = `${horas}:${minutos}:${segundos}`;\n\n// 5. Preparamos los textos finales\nconst textoCocina = `🔔 Nuevo Pedido Recibido \\n\\n📦 ID de Orden: ${idPedidoUnico}\\n👤 Cliente: ${nombreCompleto} (ID: ${telegramId})\\n🏢 Torre: ${torreElegida}\\n📍 Ubicación: ${pisoElegido}\\n📅 Fecha y Hora: ${fechaStr} a las ${horaStr}\\n\\n📋 Detalle del pedido:\\n${detallesResumen}\\n\\n💰 Total a cobrar: $${grandTotal.toFixed(2)}\\n📌 Estado: Recibido`;\n\nconst textoUsuario = `¡Listo, ${nombreCompleto}! Tu pedido ha sido confirmado y enviado a cocina con éxito 🍳🚀.\\n\\n📦 ID de Pedido: ${idPedidoUnico}\\n🕒 Procesado a las: ${horaStr} (${fechaStr})\\n🏢 Entregar en: Torre ${torreElegida} - ${pisoElegido}\\n\\n📋 Tu Resumen:\\n${detallesResumen}\\n\\n💰 Total Pagado / A Cancelar: $${grandTotal.toFixed(2)}\\n\\nGuarda este ID por si necesitas realizar cualquier consulta. ¡Buen provecho! ✨`;\n\n// 6. Retornamos todo\nreturn [{\n    json: {\n        telegram_id: telegramId,\n        nombre_completo: nombreCompleto,\n        torre: torreElegida,\n        ubicacion: pisoElegido,\n        id_pedido: idPedidoUnico,\n        detalles_pedido: detallesResumen,\n        total_pago: grandTotal,\n        estado: \"Recibido\",\n        fecha: fechaStr,\n        hora: horaStr,\n        pantalla_actual: \"inicio\",\n        mensajeCocina: textoCocina,\n        mensajeUsuario: textoUsuario,\n        actualizaciones_stock: actualizacionesStock,\n        \n        // EXPORTAMOS LAS VARIABLES DE ALERTA\n        alerta_stock_critico: alertaStockCritico,\n        productos_criticos_texto: productosCriticos.join('\\n')\n    }\n}];"
       },
       "name": "JS Consolidar Datos Usuario",
       "type": "n8n-nodes-base.code",
@@ -2283,10 +2283,10 @@
         "columns": {
           "mappingMode": "defineBelow",
           "value": {
-            "telegram_id": "={{ $json.telegram_id }}",
-            "nombre_completo": "={{ $json.nombre_completo }}",
-            "torre": "={{ $json.torre }}",
-            "ubicacion": "={{ $json.ubicacion}}"
+            "telegram_id": "={{ $('JS Consolidar Datos Usuario').item.json.telegram_id }}",
+            "nombre_completo": "={{ $('JS Consolidar Datos Usuario').item.json.nombre_completo }}",
+            "torre": "={{ $('JS Consolidar Datos Usuario').item.json.torre }}",
+            "ubicacion": "={{ $('JS Consolidar Datos Usuario').item.json.ubicacion }}"
           },
           "matchingColumns": [
             "telegram_id"
@@ -2339,7 +2339,7 @@
       "type": "n8n-nodes-base.googleSheets",
       "typeVersion": 4,
       "position": [
-        720,
+        928,
         2464
       ],
       "id": "dea97993-a339-42a5-a4b6-cd2d44b77921",
@@ -2360,7 +2360,7 @@
       "type": "n8n-nodes-base.telegram",
       "typeVersion": 1,
       "position": [
-        944,
+        1184,
         2464
       ],
       "id": "3c3d81b8-7e49-4d29-8e22-f0dad47c0347",
@@ -2426,7 +2426,7 @@
       "type": "n8n-nodes-base.telegram",
       "typeVersion": 1,
       "position": [
-        1184,
+        1392,
         2464
       ],
       "webhookId": "196c3d83-fecf-4841-9bb3-add66d83dc83",
@@ -2547,6 +2547,194 @@
         "googleSheetsOAuth2Api": {
           "id": "MHFm28JeWeqBIdDi",
           "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "appendOrUpdate",
+        "documentId": {
+          "__rl": true,
+          "value": "1YbRDxAMf6mekQxKARjyt8Bo2ZRFc_SK-_UUb2FIWYIs",
+          "mode": "list",
+          "cachedResultName": "DeliveryBot"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 321079313,
+          "mode": "list",
+          "cachedResultName": "PEDIDOS"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "id_pedido": "={{ $json.id_pedido }}",
+            "fecha": "={{ $json.fecha }}",
+            "hora": "={{ $json.hora }}",
+            "detalles_pedido": "={{ $json.detalles_pedido }}",
+            "total_pago": "={{ $json.total_pago }}",
+            "estado": "={{ $json.estado }}",
+            "id_usuario": "={{ $json.telegram_id }}"
+          },
+          "matchingColumns": [
+            "id_pedido"
+          ],
+          "schema": [
+            {
+              "id": "id_pedido",
+              "displayName": "id_pedido",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "id_usuario",
+              "displayName": "id_usuario",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "detalles_pedido",
+              "displayName": "detalles_pedido",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "total_pago",
+              "displayName": "total_pago",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "estado",
+              "displayName": "estado",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "fecha",
+              "displayName": "fecha",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "hora",
+              "displayName": "hora",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "id": "41fe9d4b-df24-4ebf-a57f-4f923e325be6",
+      "name": "Guardar Pedido Final",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [
+        736,
+        2464
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "MHFm28JeWeqBIdDi",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "71988562-dcef-4d8e-9614-1be895e5109c",
+              "leftValue": "={{ $('JS Consolidar Datos Usuario').item.json.alerta_stock_critico }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            },
+            {
+              "id": "48f0ef0b-79ee-4e03-a8a9-a47be7a010d5",
+              "leftValue": "",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        2192,
+        2464
+      ],
+      "id": "2b082638-76bc-4ab2-a443-2278c2d7bf0c",
+      "name": "Stock critico"
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Notificar Pedido a Cocina1').item.json.result.chat.id }}",
+        "text": "=🚨 ALERTA DE INVENTARIO CRÍTICO 🚨  Los siguientes productos se están agotando:\n\n{{ $('JS Consolidar Datos Usuario').item.json.productos_criticos_texto }} \n\nPor favor, repón el stock en Google Sheets.",
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        2496,
+        2384
+      ],
+      "id": "5695feed-3efc-49a9-963b-505cf98212c6",
+      "name": "Mensaje Stock Critico",
+      "webhookId": "07d22f1b-2c09-4867-8451-cb3ba3990911",
+      "credentials": {
+        "telegramApi": {
+          "id": "QE58UQwwjr2JRZ88",
+          "name": "Telegram account"
         }
       }
     }
@@ -3083,7 +3271,7 @@
       "main": [
         [
           {
-            "node": "Guardar en Hoja USUARIOS",
+            "node": "Guardar Pedido Final",
             "type": "main",
             "index": 0
           }
@@ -3160,6 +3348,45 @@
           }
         ]
       ]
+    },
+    "Guardar Pedido Final": {
+      "main": [
+        [
+          {
+            "node": "Guardar en Hoja USUARIOS",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Actualizar Stock MENU": {
+      "main": [
+        [
+          {
+            "node": "Stock critico",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Stock critico": {
+      "main": [
+        [
+          {
+            "node": "Mensaje Stock Critico",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "Mensaje Stock Critico": {
+      "main": [
+        []
+      ]
     }
   },
   "active": false,
@@ -3168,7 +3395,7 @@
     "binaryMode": "separate",
     "availableInMCP": false
   },
-  "versionId": "78a714e9-5a98-473f-8610-b36e121854b0",
+  "versionId": "27e29a17-3f0c-4827-b3e3-19510c5da4e4",
   "meta": {
     "templateCredsSetupCompleted": true,
     "instanceId": "986f0dd04997acccb3fca9a91e281f4e53775b1f39159405f5dd01baf875fd20"

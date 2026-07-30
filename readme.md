@@ -10,9 +10,35 @@ DeliveryBot es un bot de Telegram automatizado mediante **n8n**, diseñado para 
 * **Registro de Datos de Usuario:** Captura el nombre del usuario mediante un comando específico antes de procesar el pedido.
 * **Ubicación de Entrega Específica:** Permite definir el destino exacto dentro de las instalaciones usando comandos dedicados (*torre*, *salón*, *recepción* o *coordinación*).
 * **Integración con Cocina:** Envía los pedidos confirmados directamente al área de cocina para su preparación inmediata.
+* **Gestión Inteligente de Inventario:** 
+  * Descuenta automáticamente el stock en Google Sheets con cada pedido.
+  * Cambia el estado a "Agotado" cuando el stock llega a 0, reflejándose inmediatamente en el menú interactivo.
+  * Emite una **alerta de stock crítico** a los administradores si un producto llega a 3 unidades o menos.
 * **Sincronización con Google Sheets:** Almacena automáticamente cada transacción, usuario, ubicación y estado en una hoja de cálculo centralizada.
 * **Procesamiento de Datos en JavaScript:** Un nodo de código dedicado analiza y calcula métricas clave de ventas y operaciones.
 * **Reportes para Administradores:** Envía resúmenes detallados de ingresos, productos más vendidos y horas pico.
+
+---
+
+## 📸 Galería del Bot en Acción
+
+### 1. Flujo de un Pedido Exitoso
+El cliente puede explorar el menú, seleccionar cantidades y definir su ubicación de entrega de manera fluida e interactiva.
+
+![Paso 1 - Inicio del pedido](Delivery1.png)
+![Paso 2 - Selección de productos](Delivery2.png)
+![Paso 3 - Confirmación del carrito](Delivery3.png)
+![Paso 4 - Confirmación final](Delivery4.png)
+
+### 2. Control de Inventario Automático (Stock Agotado)
+Cuando un producto llega a stock 0, el sistema actualiza Google Sheets marcándolo como "Agotado", lo que bloquea automáticamente su venta y lo muestra actualizado en el chat para futuros clientes.
+
+![Menú con producto agotado](Delivery5.png)
+
+### 3. Recepción en Cocina y Alertas de Stock Crítico
+La cocina recibe una notificación instantánea con todos los detalles del pedido para su preparación. Adicionalmente, el bot evalúa el inventario y adjunta una alerta preventiva si el stock de algún producto se ha vuelto crítico (≤ 3 unidades).
+
+![Notificación a cocina y alerta de stock](Delivery6.png)
 
 ---
 
@@ -55,7 +81,7 @@ Una vez que el cliente confirma su orden, el pedido sigue un flujo automatizado 
 
 ## 📦 Estructura del Flujo en n8n
 
-1. **Telegram Trigger:** Escucha los mensajes y comandos entrantes de los usuarios (como `/menu`, `/mi pedido`, `/torre`, `/confirmar`, etc.).
+1. **Telegram Trigger:** Escucha los mensajes y comandos entrantes de los usuarios (como `/menu`, `/mipedido`, `/torre`, `/confirmar`, etc.).
 2. **Google Sheets (Get/Append Rows):** Lee o escribe los datos en la hoja de cálculo de pedidos.
 3. **Nodo de Código (Analizar Datos y Generar Reporte):** Script en JavaScript encargado de filtrar, ordenar, sumar ingresos y estructurar el texto final del reporte de ventas.
 4. **Telegram (Send Message):** Envía las respuestas, confirmaciones, avisos a cocina o estados del pedido de vuelta al chat.
@@ -140,17 +166,5 @@ return [{
         horas_pico: arrayTopHoras,
         reporte_texto: mensajeReporte
     }
-}];
+}];V
 
-
-## 🎯 Próximas Mejoras y Pendientes (Roadmap)
-
-El proyecto está funcional, pero aún tiene áreas de oportunidad y características planeadas para futuras versiones:
-
-* [ ] **Cambios de estados del pedido a traves del chat de la cocina:** como por ejemplo:
-**En camino:** El pedido ha salido del establecimiento y va rumbo a la ubicación exacta especificada (*torre, salón, recepción o coordinación*).
-**Entregado:** El pedido ha llegado con éxito a su destino final.
-* [ ] **Notificaciones automáticas:** Enviar una alerta directa al cliente por Telegram cuando el pedido cambie a estado *En camino*.
-* [ ] **Filtros por fecha en el reporte:** Permitir que el comando `/reporte` reciba un rango de fechas (ej. diario o semanal) en lugar de todo el historial acumulado.
-* [ ] **Base de datos persistente:** Migrar el almacenamiento temporal de carritos de Google Sheets a una base de datos relacional para evitar pérdida de datos en carritos activos.
-* [ ] **Panel web de administración:** Diseñar una interfaz web externa para ver el estado de cocina en tiempo real sin depender únicamente del chat.
